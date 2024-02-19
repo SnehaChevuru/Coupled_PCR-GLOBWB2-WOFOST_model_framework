@@ -6,32 +6,20 @@ config_pcr = "/quanta1/home/chevu001/PCR-WOFOST/TW/Pcrglobwb/setup_conus_5arcmin
 pcr = bmiPcrglobwb.BmiPCRGlobWB()
 pcr.initialize(config_pcr)
 
-
-from pymt_Maggy import WOFOST_MTW
-config_Maize = "/quanta1/home/chevu001/PCR-WOFOST/TW/Maggy/WOFOSTBMI_Maggy/WOFOST_Maggy/list.txt"
-Maize_wofost = WOFOST_MTW()
-Maize_wofost.initialize(config_Maize)
-
-from pymt_Saggy import WOFOST_STW
-config_Soybean = "/quanta1/home/chevu001/PCR-WOFOST/TW/Saggy/WOFOSTBMI_Saggy/WOFOST_Saggy/list_sb.txt"
-Soybean_wofost = WOFOST_STW()
-Soybean_wofost.initialize(config_Soybean)
-
-from pymt_Weggy import WOFOST_WTW
-config_Wheat = "/quanta1/home/chevu001/PCR-WOFOST/TW/Weggy/WOFOSTBMI_Weggy/WOFOST_Weggy/list_ww.txt"
-Wheat_wofost = WOFOST_WTW()
-Wheat_wofost.initialize(config_Wheat)
-
+from pymt_wofost import WOFOST
+config_wofost = "/list.txt"
+wofost = WOFOST()
+wofost.initialize(config_wofost)
+#### this runs for one crop ####
 # end_time is used to retrive the end of time step
-end_time = Maize_wofost.get_end_time()
+end_time = wofost.get_end_time()
 end_time = int(end_time)
 
 size = Maize_wofost.get_grid_size(0)
 print(size)
 
-
-crop_types = ["irrMaize","irrSoybean","irrWheat"]
-wofost_models = dict(zip(crop_types,[Maize_wofost,Soybean_wofost,Wheat_wofost]))
+crop_types = ["irrMaize"]
+wofost_models = dict(zip(crop_types,[wofost]))
 
 ## modules ##
 
@@ -61,6 +49,8 @@ wp = {}
 theta_fc = {}
 theta_wp = {}
 RD = {}
+lat = 300 
+lon = 840
 for crop_type in crop_types:
     
     ## the variables goes to WOFOST !! initialise the soil parameters !! ##   
@@ -71,7 +61,7 @@ for crop_type in crop_types:
     theta_fc[crop_type] = sat[crop_type] *fc[crop_type]
     theta_wp[crop_type] = sat[crop_type] *wp[crop_type]
 
-    RD[crop_type] = np.full((300,840),0).astype("float32")
+    RD[crop_type] = np.full((lat,lon),0).astype("float32")
     
     
 # loop begins
@@ -138,7 +128,7 @@ for i in range(end_time):
     
         ### WOFOST get variables ###
         buffer = np.zeros(size)
-        RD[crop_type] = np.reshape(wofost_model.get_value("root_depth",buffer),(300,840)).astype("float32") # lat and lon
+        RD[crop_type] = np.reshape(wofost_model.get_value("root_depth",buffer),(lat,lon)).astype("float32") # lat and lon
         
     
         default_value = 1e20
@@ -148,23 +138,23 @@ for i in range(end_time):
         
         ## Vegetative fluxes ##
     
-        AE[crop_type] = np.reshape(wofost_model.get_value("ActBSevaporation",buffer),(300,840)).astype("float32")
+        AE[crop_type] = np.reshape(wofost_model.get_value("ActBSevaporation",buffer),(lat,lon)).astype("float32")
         AE[crop_type][AE[crop_type] ==1e18] = default_value
         
         
-        PE[crop_type] = np.reshape(wofost_model.get_value("PotBSevaporation",buffer),(300,840)).astype("float32")
+        PE[crop_type] = np.reshape(wofost_model.get_value("PotBSevaporation",buffer),(lat,lon)).astype("float32")
         PE[crop_type][PE[crop_type] ==1e18] = default_value
         
         
-        AT[crop_type] = np.reshape(wofost_model.get_value("Acttranspiration",buffer),(300,840)).astype("float32")
+        AT[crop_type] = np.reshape(wofost_model.get_value("Acttranspiration",buffer),(lat,lon)).astype("float32")
         AT[crop_type][AT[crop_type] ==1e18] = default_value
         
         
-        WE[crop_type] = np.reshape(wofost_model.get_value("OpenWevaporation",buffer),(300,840)).astype("float32")
+        WE[crop_type] = np.reshape(wofost_model.get_value("OpenWevaporation",buffer),(lat,lon)).astype("float32")
         WE[crop_type][WE[crop_type] ==1e18] = default_value
         
         
-        ET[crop_type] = np.reshape(wofost_model.get_value("PotET",buffer),(300,840)).astype("float32")
+        ET[crop_type] = np.reshape(wofost_model.get_value("PotET",buffer),(lat,lon)).astype("float32")
         ET[crop_type][ET[crop_type] ==1e18] = default_value
         
         
@@ -183,9 +173,7 @@ for i in range(end_time):
     
 # finalizing (closing) the models   
 
-Maize_wofost.finalize()
-Soybean_wofost.finalize()
-Wheat_wofost.finalize()
+wofost.finalize()
 pcr.finalize()
 
 
