@@ -22,17 +22,26 @@ Download the PCRGLOBWB2 BMI model
 To activate the BMI PCRGLOBWB2-WOFOST:
 
 from model import bmiPcrglobwb
+
 config_pcr = "/setup_conus_5arcmin.ini"
+
 pcr = bmiPcrglobwb.BmiPCRGlobWB()
+
 pcr.initialize(config_pcr)
 
 from pymt_wofost import WOFOST
+
 config_wofost = "/list.txt"
+
 wofost = WOFOST()
+
 wofost.initialize(config_wofost)
 
 pcr.update   (run for 1 time step)  #### refer to ini file ####
+
 wofost.update
+
 pcr.finalize()
+
 wofost.finalize()
 
