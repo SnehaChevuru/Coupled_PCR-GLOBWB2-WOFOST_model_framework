@@ -1,0 +1,9 @@
+/eejit/home/chevu001/Sneha/coupling/bmi-wofost/WOFOST/Parameters/ Crop/mag201.cab Soil/ec4.new Management/rb_mg.dat Site/rb.site 04-30 0 /eejit/home/chevu001/Sneha/coupling/output_new/we.csv
+/eejit/home/chevu001/Sneha/coupling/bmi-wofost/WOFOST/Global/ 2000 2015 /eejit/home/chevu001/Sneha/coupling/bmi-wofost/WOFOST/Global/maize_mask_ir.nc
+/eejit/home/chevu001/Sneha/coupling/bmi-wofost/WOFOST/Global/mai_ir_ggcmi_crop_calendar_phase3_v1.01.nc4
+tasmin_wfdei_2000_2015.nc       TMIN       tasmin
+tasmax_wfdei_2000_2015.nc       TMAX       tasmax
+pr_gpcc_wfdei_2000_2015.nc      RAIN       pr
+rsds_wfdei_2000_2015.nc         RADIATION  rsds
+sfcWind_wfdei_2000_2015.nc      WINDSPEED  sfcWind
+vp_wfdei_2000_2015.nc           VAPOUR     hurs

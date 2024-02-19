@@ -1,0 +1,9 @@
+/eejit/home/chevu001/Sneha/coupling/bmi-wofost/WOFOST/Parameters/ Crop/soy.cab Soil/ec3.new Management/rb_mg.dat Site/rb.site 04-01 0 /eejit/home/chevu001/Sneha/coupling/output/soybean.txt
+/eejit/home/chevu001/Sneha/coupling/bmi-wofost/WOFOST/Forcing/CONUS/ 2000 2015 /eejit/home/chevu001/Sneha/coupling/bmi-wofost/WOFOST/Forcing/CONUS/soybean_mask_conus_ir.nc
+/eejit/home/chevu001/Sneha/coupling/bmi-wofost/WOFOST/Forcing/CONUS/Soybean_cc_conus_irrigated.nc
+tasmin_wfdei_2000_2015_cs.nc       TMIN       tasmin
+tasmax_wfdei_2000_2015_cs.nc       TMAX       tasmax
+pr_gpcc_wfdei_2000_2015_cs.nc      RAIN       pr
+rsds_wfdei_2000_2015_cs.nc         RADIATION  rsds
+sfcWind_wfdei_2000_2015_cs.nc      WINDSPEED  sfcWind
+vp_wfdei_2000_2015_cs.nc           VAPOUR     vp

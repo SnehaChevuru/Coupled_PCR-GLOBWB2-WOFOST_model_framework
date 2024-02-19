@@ -1,0 +1,75 @@
+**
+** Management data file for use with LINTUL5 (NPK) model, August 2011
+**
+** Management type ??
+
+
+** Fertiliser N, P and K applications 
+FERNTAB =   0.,    0.0,  !  kg N/ha
+            99.,   0.0,  ! as function of day number
+            310.,  0.0, 
+            335., 20.0,
+            336.,  0.0
+            338.,  0.0,
+            361.,  0.0,
+            362., 92.0,
+            363.,  0.0,
+            366.,  0.0
+
+FERPTAB =   0.,    0.0,  !  kg N/ha
+            99.,   0.0,  ! as function of day number
+            310.,  0.0, 
+            335., 20.0,
+            336.,  0.0
+            338.,  0.0,
+            361.,  0.0,
+            362., 92.0,
+            363.,  0.0,
+            366.,  0.0
+
+FERKTAB =   0.,    0.0,  !  kg N/ha
+            99.,   0.0,  ! as function of day number
+            310.,  0.0, 
+            335., 20.0,
+            336.,  0.0,
+            338.,  0.0,
+            361.,  0.0,
+            362., 92.0,
+            363.,  0.0,
+            366.,  0.0
+
+
+** Recovery fraction of applied fertiliser N, P and K
+NRFTAB  =     0.,  0.80,  !  kg N uptake by the crop per kg fertiliser-N applied
+             200., 0.80   !  as function of day number
+
+PRFTAB  =     0.,  0.80,  !  kg P uptake by the crop per kg fertiliser-P applied
+             200., 0.80   !  as function of day number
+
+KRFTAB  =     0.,  0.80,  !  kg K uptake by the crop per kg fertiliser-K applied
+             200., 0.80   !  as function of day number
+
+
+* Soil N, P and K mineralization
+NMINS    =   15.0  !  total mineral soil N available at start of growth period [kg N/ha]
+RTNMINS  =   0.01  ! fraction of soil mineral N coming available per day [day-1]
+
+PMINS   =     200.  !  total mineral soil P available at start of growth period [kg P/ha]
+RTPMINS  =   0.01  ! fraction of soil mineral P coming available per day [day-1]
+
+KMINS   =      200.  !  total mineral soil K available at start of growth period [kg N/ha]
+RTKMINS  =   0.01  ! fraction of soil mineral K coming available per day [day-1]
+
+
+* irrigation water applied 
+IRRTAB   =   0., 0.0,  !  irrigation water applied per day [cm]
+             164., 0.0, !  as function of day number
+             165., 0.0,
+             166., 0.0,
+             200., 0.0,
+             201., 0.0,
+             202., 0.0,
+             220., 0.0,
+             221., 0.0,
+             222., 0.0,
+             365., 0.0

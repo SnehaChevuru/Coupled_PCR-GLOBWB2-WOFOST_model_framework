@@ -1,0 +1,24 @@
+
+name : BMIwrap
+channels:
+        - conda-forge
+dependencies:
+        - python>=3
+        - make
+        - cmake
+        - pkg-config
+        - c-compiler
+        - bmi-c
+        - babelizer
+        - numpy 
+        - pip
+        - python-dateutil
+        - six
+        - zlib
+        - pcraster
+        - pip :
+              - netcdf4
+              - cdsapi
+        - cdo
+        - nco
+        - ncview

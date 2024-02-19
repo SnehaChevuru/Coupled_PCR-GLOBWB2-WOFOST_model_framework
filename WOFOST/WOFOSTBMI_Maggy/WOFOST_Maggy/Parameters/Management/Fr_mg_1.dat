@@ -1,0 +1,32 @@
+** N Fertiliser, Date   Amount [kg/ha]
+FERNTAB =      02-19     118.0
+               03-07     118.0
+
+** P Fertiliser, Date   Amount [kg/ha]
+FERPTAB =      02-19     49.0
+               03-07     49.0
+
+** K Fertiliser, Date   Amount [kg/ha]
+FERKTAB =      02-19     30.5
+               03-07     30.5
+
+** Recovery fraction of applied fertiliser N, P and K
+NRFTAB  =     0.8
+
+PRFTAB  =     0.8
+
+KRFTAB  =     0.8
+
+** Soil N, P and K mineralization
+NMINS    = 150.0
+RTNMINS  = 0.025
+
+PMINS    = 200.
+RTPMINS  = 0.025
+
+KMINS    = 200.
+RTKMINS  = 0.025
+
+** Irrigation water applied [cm]
+IRRTAB   =   01-01   0.0
+             12-31   0.0

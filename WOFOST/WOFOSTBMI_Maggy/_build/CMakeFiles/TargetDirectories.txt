@@ -1,0 +1,14 @@
+/eejit/home/chevu001/PCR-WOFOST/TW/Maggy/WOFOSTBMI_Maggy/_build/CMakeFiles/edit_cache.dir
+/eejit/home/chevu001/PCR-WOFOST/TW/Maggy/WOFOSTBMI_Maggy/_build/CMakeFiles/rebuild_cache.dir
+/eejit/home/chevu001/PCR-WOFOST/TW/Maggy/WOFOSTBMI_Maggy/_build/CMakeFiles/list_install_components.dir
+/eejit/home/chevu001/PCR-WOFOST/TW/Maggy/WOFOSTBMI_Maggy/_build/CMakeFiles/install.dir
+/eejit/home/chevu001/PCR-WOFOST/TW/Maggy/WOFOSTBMI_Maggy/_build/CMakeFiles/install/local.dir
+/eejit/home/chevu001/PCR-WOFOST/TW/Maggy/WOFOSTBMI_Maggy/_build/CMakeFiles/install/strip.dir
+/eejit/home/chevu001/PCR-WOFOST/TW/Maggy/WOFOSTBMI_Maggy/_build/WOFOST_Maggy/CMakeFiles/bmiwofostMaggyc.dir
+/eejit/home/chevu001/PCR-WOFOST/TW/Maggy/WOFOSTBMI_Maggy/_build/WOFOST_Maggy/CMakeFiles/run_bmiwofostMaggyc.dir
+/eejit/home/chevu001/PCR-WOFOST/TW/Maggy/WOFOSTBMI_Maggy/_build/WOFOST_Maggy/CMakeFiles/edit_cache.dir
+/eejit/home/chevu001/PCR-WOFOST/TW/Maggy/WOFOSTBMI_Maggy/_build/WOFOST_Maggy/CMakeFiles/rebuild_cache.dir
+/eejit/home/chevu001/PCR-WOFOST/TW/Maggy/WOFOSTBMI_Maggy/_build/WOFOST_Maggy/CMakeFiles/list_install_components.dir
+/eejit/home/chevu001/PCR-WOFOST/TW/Maggy/WOFOSTBMI_Maggy/_build/WOFOST_Maggy/CMakeFiles/install.dir
+/eejit/home/chevu001/PCR-WOFOST/TW/Maggy/WOFOSTBMI_Maggy/_build/WOFOST_Maggy/CMakeFiles/install/local.dir
+/eejit/home/chevu001/PCR-WOFOST/TW/Maggy/WOFOSTBMI_Maggy/_build/WOFOST_Maggy/CMakeFiles/install/strip.dir

@@ -1,0 +1,7 @@
+Forcing/ 1981 1982 Forcing/m_ir_rb.nc
+tasmin_wfdei_1981_1982.nc  TMIN       tasmin
+tasmax_wfdei_1981_1982.nc  TMAX       tasmax
+pr_wfdei_1981_1982.nc      RAIN       pr
+rsds_wfdei_1981_1982.nc    RADIATION  rsds
+sfcWind_wfdei_1981_1982.nc WINDSPEED  sfcWind
+vp_wfdei_1981_1982.nc      VAPOUR     vp

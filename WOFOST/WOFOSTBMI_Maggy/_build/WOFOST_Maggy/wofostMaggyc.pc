@@ -1,0 +1,5 @@
+Name: WofostMaggyC
+Description: Crop growth model
+Version: 2.0
+Libs: -L/quanta1/home/chevu001/miniconda3/envs/BMIwrap/lib -lbmiwofostMaggyc
+Cflags: -I/quanta1/home/chevu001/miniconda3/envs/BMIwrap/include

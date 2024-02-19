@@ -1,0 +1,9 @@
+/eejit/home/chevu001/Sneha/coupling/bmi-wofost/WOFOST/Parameters/ Crop/mag201.cab Soil/ec4.new Management/rb_mg.dat Site/rb.site 04-01 0 /eejit/home/chevu001/PCR-WOFOST/Output/Maize.txt
+/eejit/home/chevu001/Sneha/PCRGLOBWB/Forcing/VP/ 2009 2019 /eejit/home/chevu001/Sneha/PCRGLOBWB/Vegetative_fraction/vegetation_fraction_maize_irrigated_2000_05min_conus_mask.nc
+/eejit/home/chevu001/Sneha/coupling/bmi-wofost/WOFOST/Forcing/CONUS/30arcmin/Maize_cc_conus_irrigated_5min.nc
+vp_W5E5_2009-2019_cs_5min.nc       TMIN            vp
+vp_W5E5_2009-2019_cs_5min.nc       VAPOUR          vp
+vp_W5E5_2009-2019_cs_5min.nc	   TMAX            vp
+vp_W5E5_2009-2019_cs_5min.nc       RADIATION       vp
+vp_W5E5_2009-2019_cs_5min.nc       RAIN            vp
+vp_W5E5_2009-2019_cs_5min.nc       WINDSPEED       vp

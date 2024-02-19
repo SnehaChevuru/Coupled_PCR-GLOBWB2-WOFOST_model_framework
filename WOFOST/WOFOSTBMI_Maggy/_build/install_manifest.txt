@@ -1,0 +1,5 @@
+/quanta1/home/chevu001/miniconda3/envs/BMIwrap/bin/run_bmiwofostMaggyc
+/quanta1/home/chevu001/miniconda3/envs/BMIwrap/lib/libbmiwofostMaggyc.so
+/quanta1/home/chevu001/miniconda3/envs/BMIwrap/include/wofost_bmi.h
+/quanta1/home/chevu001/miniconda3/envs/BMIwrap/include/wofost.h
+/quanta1/home/chevu001/miniconda3/envs/BMIwrap/lib/pkgconfig/wofostMaggyc.pc
