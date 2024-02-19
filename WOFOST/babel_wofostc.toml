@@ -1,7 +1,7 @@
 [library]
-[library.WOFOST_MTW]
+[library.WOFOST]
 language = "c"
-library = "bmiwofostMaggyc"
+library = "bmiwofostc"
 header = "wofost_bmi.h"
 entry_point = "register_bmi_wofost"
 
@@ -14,7 +14,7 @@ include_dirs = []
 extra_compile_args = []
 
 [package]
-name = "pymt_Maggy"
+name = "pymt_wofost"
 requirements = [""]
 
 [info]
