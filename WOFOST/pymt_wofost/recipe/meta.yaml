@@ -1,0 +1,42 @@
+{% set data = load_setup_py_data() %}
+
+package:
+  name: "pymt_Mags_rf"
+  version: {{ data.get('version') }}
+
+source:
+  path: ..
+
+build:
+  number: 0
+  script: "{{ PYTHON }} -m pip install . --no-deps --ignore-installed --no-cache-dir -vvv"
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+  host:
+    - python
+    - pip
+    - cython
+    - numpy 1.11.*
+    - model_metadata
+  run:
+    - python
+    - {{ pin_compatible('numpy') }}
+
+test:
+  requires:
+    - bmi-tester
+    - model_metadata
+  imports:
+    - pymt_Mags_rf
+  commands:
+    - config_file=$(mmd-stage WOFOST_MaizeTW . > MANIFEST && mmd-query WOFOST_MaizeTW --var=run.config_file.path)
+    - bmi-test pymt_Mags_rf.bmi:WOFOST_MaizeTW --config-file=$config_file --manifest=MANIFEST -v
+
+about:
+  summary: Python package that wraps the pymt_Mags_rf BMI.
+  home: https://github.com/SnehaChevuru/pymt_Mags_rf
+  license: Not open source
+  license_file: LICENSE
+  dev_url: https://github.com/SnehaChevuru/pymt_Mags_rf

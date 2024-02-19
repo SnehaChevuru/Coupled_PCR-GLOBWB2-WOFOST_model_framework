@@ -1,0 +1,4 @@
+name: pymt_Mags_rf
+language: c
+package: pymt_Mags_rf
+class: WOFOST_MaizeTW

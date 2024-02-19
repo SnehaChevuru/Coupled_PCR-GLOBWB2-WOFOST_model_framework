@@ -1,0 +1,31 @@
+[library]
+[library.WOFOST_MaizeTW]
+language = "c"
+library = "bmiwofostMagsc"
+header = "wofost_bmi.h"
+entry_point = "register_bmi_wofost"
+
+
+[build]
+undef_macros = []
+define_macros = []
+libraries = []
+library_dirs = []
+include_dirs = []
+extra_compile_args = []
+
+[package]
+name = "pymt_Mags_rf"
+requirements = [""]
+
+[info]
+github_username = "SnehaChevuru"
+package_author = "Sneha Chevuru"
+package_author_email = "s.chevuru@uu.nl"
+package_license = "Not open source"
+summary = "PyMT plugin for the C WOFOST model"
+
+[ci]
+python_version = ["3.9"]
+os = ["linux", "mac", "windows"]
+
