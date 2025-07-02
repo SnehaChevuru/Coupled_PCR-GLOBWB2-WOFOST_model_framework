@@ -1,0 +1,163 @@
+import numpy as np
+
+# Activating the hydrology and crop models 
+from model import bmiPcrglobwb
+config_pcr = "setup_conus_5arcmin.ini"
+pcr = bmiPcrglobwb.BmiPCRGlobWB()
+pcr.initialize(config_pcr)
+
+
+from pymt_Magg_rf import WOFOST_MaizeOW
+config_Maize = "list_irr.txt"
+Maize_wofost = WOFOST_MaizeOW()
+Maize_wofost.initialize(config_Maize)
+
+
+# end_time is used to retrive the end of time step
+end_time = Maize_wofost.get_end_time()
+end_time = int(end_time)
+
+size = Maize_wofost.get_grid_size(0)
+print(size)
+
+crop_types = ["irrMaize"]
+wofost_models = dict(zip(crop_types,[Maize_wofost]))
+
+
+
+## modules ##
+
+# PCR variables
+# get soil Parameters before the update 
+#depths 
+dep1 = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"thickUpp").astype("float32")) for crop_type in crop_types)
+dep2 = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"thickLow").astype("float32")) for crop_type in crop_types)
+
+
+#volumteric moisture content
+sat_upp = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"satVolMoistContUpp").astype("float32")) for crop_type in crop_types)
+sat_low = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"satVolMoistContLow").astype("float32")) for crop_type in crop_types)
+res_upp = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"resVolMoistContUpp").astype("float32")) for crop_type in crop_types)
+res_low = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"resVolMoistContLow").astype("float32")) for crop_type in crop_types)
+airentry_upp = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"airEntryValueUpp").astype("float32")) for crop_type in crop_types)
+airentry_low = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"airEntryValueLow").astype("float32")) for crop_type in crop_types)
+Beta_upp = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"poreSizeBetaUpp").astype("float32")) for crop_type in crop_types)
+Beta_low = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"poreSizeBetaLow").astype("float32")) for crop_type in crop_types)
+Ksat_upp = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"kSatUpp").astype("float32")) for crop_type in crop_types)
+Ksat_low = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"kSatLow").astype("float32")) for crop_type in crop_types)
+
+#soil variables
+fc_upp = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"effSatAtFieldCapUpp").astype("float32")) for crop_type in crop_types)
+fc_low = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"effSatAtFieldCapLow").astype("float32")) for crop_type in crop_types)
+wp_upp = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"effSatAtWiltPointUpp").astype("float32")) for crop_type in crop_types)
+wp_low = dict((crop_type, pcr.get_value(pcr.model.landSurface.landCoverObj[crop_type].parameters,"effSatAtWiltPointLow").astype("float32")) for crop_type in crop_types)
+
+sat = {}
+sat1 = {}
+res = {}
+fc = {}
+wp = {}
+theta_fc = {}
+theta_wp = {}
+Ksat = {}
+Beta = {}
+AirEntry = {}
+betaupp = {}
+airentryupp = {}
+ksatupp = {}
+Ksub = {}
+slope = {}
+criarc = {}
+
+for crop_type in crop_types:
+    
+    ## the variables goes to WOFOST !! initialise the soil parameters !! ##   
+    sat1[crop_type] = (((sat_upp[crop_type]*dep1[crop_type])+(sat_low[crop_type]*dep2[crop_type]))/(dep1[crop_type]+dep2[crop_type])).reshape(size)
+    res[crop_type] = (((res_upp[crop_type]*dep1[crop_type])+(res_low[crop_type]*dep2[crop_type]))/(dep1[crop_type]+dep2[crop_type])).reshape(size)
+    fc[crop_type] = (((fc_upp[crop_type]*dep1[crop_type])+(fc_low[crop_type]*dep2[crop_type]))/(dep1[crop_type]+dep2[crop_type])).reshape(size)
+    wp[crop_type] = (((wp_upp[crop_type]*dep1[crop_type])+(wp_low[crop_type]*dep2[crop_type]))/(dep1[crop_type]+dep2[crop_type])).reshape(size)
+    sat[crop_type] = sat1[crop_type] - res[crop_type]
+    theta_fc[crop_type] = sat[crop_type] *fc[crop_type]
+    theta_wp[crop_type] = sat[crop_type] *wp[crop_type]
+    
+    Ksat[crop_type] = (((Ksat_upp[crop_type]*dep1[crop_type])+(Ksat_low[crop_type]*dep2[crop_type]))/(dep1[crop_type]+dep2[crop_type])).reshape(size)
+    Beta[crop_type] = (((Beta_upp[crop_type]*dep1[crop_type])+(Beta_low[crop_type]*dep2[crop_type]))/(dep1[crop_type]+dep2[crop_type])).reshape(size)
+    AirEntry[crop_type] = (((airentry_upp[crop_type]*dep1[crop_type])+(airentry_low[crop_type]*dep2[crop_type]))/(dep1[crop_type]+dep2[crop_type])).reshape(size)
+    betaupp[crop_type] = (Beta_upp[crop_type]).reshape(size)
+    airentryupp[crop_type] = (airentry_upp[crop_type]).reshape(size)
+    ksatupp[crop_type] = (Ksat_upp[crop_type]).reshape(size)
+    
+
+    
+    
+    ###layer2#####
+    Ksub[crop_type] = ksatupp[crop_type] * (((airentryupp[crop_type]/np.where(airentryupp[crop_type] < 0.1, 0.1, airentryupp[crop_type] + 0.1))**(1/betaupp[crop_type]))**(2*betaupp[crop_type]+3))
+    slope[crop_type] = Ksat[crop_type] * (((AirEntry[crop_type]/np.where(AirEntry[crop_type] < 0.1, 0.1, AirEntry[crop_type] + 0.1))**(1/Beta[crop_type]))**(2*Beta[crop_type]+3))
+    criarc[crop_type] =  sat[crop_type] - (sat[crop_type]*((AirEntry[crop_type]/(AirEntry[crop_type] + 0.01))**(1/Beta[crop_type])))
+
+    
+    Ksat[crop_type] = Ksat[crop_type] * 100
+    Ksub[crop_type] = Ksub[crop_type] * 100
+    slope[crop_type] = slope[crop_type] * 100
+   
+    
+# loop begins
+for i in range(300):    
+    ## getting the values ##
+    
+    pcr.pre_update()
+    
+    ### Meteo_variables get from PCR ###
+    P = pcr.get_value(pcr.model.meteo,"precipitation").astype("float32")
+    TMax = pcr.get_value(pcr.model.meteo,"air_temperature_max").astype("float32")
+    TMin = pcr.get_value(pcr.model.meteo,"air_temperature_min").astype("float32")
+    WS = pcr.get_value(pcr.model.meteo,"wind_speed_10m").astype("float32")
+    SR = pcr.get_value(pcr.model.meteo,"shortwave_radiation").astype("float32")
+    VP = pcr.get_value(pcr.model.meteo,"vapour_pressure").astype("float32")
+    
+            
+    for crop_type, wofost_model in wofost_models.items():
+        
+        ### set the soil parameters ###
+        
+        wofost_model.set_value("saturation",sat[crop_type])
+        wofost_model.set_value("residual",res[crop_type]) 
+        wofost_model.set_value("field_capacity",theta_fc[crop_type])
+        wofost_model.set_value("wilting_point",theta_wp[crop_type])
+        wofost_model.set_value("hydraulic_conductivity",Ksat[crop_type])
+        wofost_model.set_value("soil_aeration",criarc[crop_type])
+        wofost_model.set_value("slope",slope[crop_type])
+        wofost_model.set_value("ksub",Ksub[crop_type])
+     
+            
+        ### set the meteo variables ###
+        wofost_model.set_value("precipitation",P) 
+        wofost_model.set_value("temperature_max",TMax)
+        wofost_model.set_value("temperature_min",TMin) 
+        wofost_model.set_value("wind_speed",WS)
+        wofost_model.set_value("shortwave_radiation",SR)
+        wofost_model.set_value("vapour_pressure",VP)
+        
+        wofost_model.update()
+    
+              
+    
+# finalizing (closing) the models   
+Maize_wofost.finalize()
+
+pcr.finalize()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
