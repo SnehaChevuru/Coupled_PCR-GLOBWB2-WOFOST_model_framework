@@ -1,0 +1,210 @@
+import numpy as np
+
+# Activating the hydrology and crop models 
+from model import bmiPcrglobwb
+config_pcr = "setup_30arcmin_conus_5arcmin.ini"
+pcr = bmiPcrglobwb.BmiPCRGlobWB()
+pcr.initialize(config_pcr)
+
+from pymt_Maggie import WOFOST_Maize
+config_Maize = "list.txt"
+Maize_wofost = WOFOST_Maize()
+Maize_wofost.initialize(config_Maize)
+
+from pymt_Saggie import WOFOST_Soybean
+config_Soybean = "list_sb.txt"
+Soybean_wofost = WOFOST_Soybean()
+Soybean_wofost.initialize(config_Soybean)
+
+from pymt_Weggie import WOFOST_Wheat
+config_Wheat = "list_ww.txt"
+Wheat_wofost = WOFOST_Wheat()
+Wheat_wofost.initialize(config_Wheat)
+
+# end_time is used to retrive the end of time step
+end_time = Maize_wofost.get_end_time()
+end_time = int(end_time)
+
+size = Maize_wofost.get_grid_size(0)
+print(size)
+
+# PCR variables
+# get soil Parameters before the update 
+#depths 
+dep1 = pcr.get_value("first_storage_depth").astype("float32")
+dep2 = pcr.get_value("second_storage_depth").astype("float32")
+
+#volumteric moisture content
+sat_upp = pcr.get_value("saturation_volumetric_moisture_content_upper").astype("float32")
+sat_low = pcr.get_value("saturation_volumetric_moisture_content_lower").astype("float32")
+res_upp = pcr.get_value("residual_volumetric_moisture_content_upper").astype("float32")
+res_low = pcr.get_value("residual_volumetric_moisture_content_lower").astype("float32")
+
+#soil variables
+fc_upp = pcr.get_value("field_capacity_upper").astype("float32")
+fc_low = pcr.get_value("field_capacity_lower").astype("float32")
+wp_upp = pcr.get_value("wilting_point_upper").astype("float32")
+wp_low = pcr.get_value("wilting_point_lower").astype("float32")
+hc_upp = pcr.get_value("hydraulic_conductivity_upper").astype("float32")
+hc_low = pcr.get_value("hydraulic_conductivity_lower").astype("float32")
+
+## the variables goes to WOFOST !! initialise the soil parameters !! ##   
+sat = (((sat_upp*dep1)+(sat_low*dep2))/(dep1+dep2)).reshape(size)
+res = (((res_upp*dep1)+(res_low*dep2))/(dep1+dep2)).reshape(size)
+fc = (((fc_upp*dep1)+(fc_low*dep2))/(dep1+dep2)).reshape(size)
+wp = (((wp_upp*dep1)+(wp_low*dep2))/(dep1+dep2)).reshape(size)
+theta_fc = sat *fc
+theta_wp = sat *wp
+
+RD_Maize = np.full((300,840),0).astype("float32")
+RD_Soybean = np.full((300,840),0).astype("float32")
+RD_Wheat = np.full((300,840),0).astype("float32")
+
+# loop begins
+for i in range(366):    
+    ## getting the values ##
+    
+    pcr.pre_update()
+    
+    ### Meteo_variables get from PCR ###
+    P = pcr.get_value("precipitation").astype("float32")
+    TMax = pcr.get_value("temperature_max").astype("float32")
+    TMin = pcr.get_value("temperature_min").astype("float32")
+    WS = pcr.get_value("wind_speed").astype("float32")
+    SR = pcr.get_value("shortwave_radiation").astype("float32")
+    VP = pcr.get_value("vapour_pressure").astype("float32")
+    
+    #### Calculating degree of stauration for Maize crop #####
+    
+    stor_upp_Maize = pcr.get_value("upper_soil_storage_for_bmi").astype("float32")
+    stor_low_Maize = pcr.get_value("lower_soil_storage_for_bmi").astype("float32")
+    
+    f1_Maize = np.divide(np.minimum(RD_Maize,dep1*100),RD_Maize, out = np.zeros_like(dep1), where=RD_Maize !=0)
+    f1_Maize = np.where(RD_Maize ==0, 1, f1_Maize)
+    f2_Maize = 1-f1_Maize
+    
+    ## Volumetric MC variables (degree of saturation) ##
+    theta_hat_Maize = f1_Maize*(res_upp + (stor_upp_Maize/dep1)) + f2_Maize *(res_low + (stor_low_Maize/dep2))
+    theta_sat_Maize = (f1_Maize*sat_upp) + (f2_Maize*sat_low)
+    theta_res_Maize = (f1_Maize*res_upp) + (f2_Maize*res_low)
+
+    # the variable se_hat (degree of saturation) goes to WOFOST
+    se_hat_Maize = ((theta_hat_Maize-theta_res_Maize)/(theta_sat_Maize-theta_res_Maize)).reshape(size)   # getting the values
+    
+    ### set the soil parameters ###
+    Maize_wofost.set_value("soil_moisture",se_hat_Maize) 
+    Maize_wofost.set_value("saturation",sat)
+    Maize_wofost.set_value("residual",res) 
+    Maize_wofost.set_value("field_capacity",theta_fc)
+    Maize_wofost.set_value("wilting_point",theta_wp)
+    
+    ### set the meteo variables ###
+    Maize_wofost.set_value("precipitation",P) 
+    Maize_wofost.set_value("temperature_max",TMax)
+    Maize_wofost.set_value("temperature_min",TMin) 
+    Maize_wofost.set_value("wind_speed",WS)
+    Maize_wofost.set_value("shortwave_radiation",SR)
+    Maize_wofost.set_value("vapour_pressure",VP)
+   
+    Maize_wofost.update()
+    
+    ### WOFOST get variables ###
+    buffer = np.zeros(size)
+    RD_Maize = np.reshape(Maize_wofost.get_value("root_depth",buffer),(300,840)).astype("float32") # lat and lon
+    
+    #### Calculating degree of stauration for Soybean crop #####
+    
+    stor_upp_Soybean = pcr.get_value("upper_soil_storage_for_bmi").astype("float32")
+    stor_low_Soybean = pcr.get_value("lower_soil_storage_for_bmi").astype("float32")
+    
+    f1_Soybean = np.divide(np.minimum(RD_Soybean,dep1*100),RD_Soybean, out = np.zeros_like(dep1), where=RD_Soybean !=0)
+    f1_Soybean = np.where(RD_Soybean ==0, 1, f1_Soybean)
+    f2_Soybean = 1-f1_Soybean
+    
+    ## Volumetric MC variables (degree of saturation) ##
+    theta_hat_Soybean = f1_Soybean*(res_upp + (stor_upp_Soybean/dep1)) + f2_Soybean *(res_low + (stor_low_Soybean/dep2))
+    theta_sat_Soybean = (f1_Soybean*sat_upp) + (f2_Soybean*sat_low)
+    theta_res_Soybean = (f1_Soybean*res_upp) + (f2_Soybean*res_low)
+
+    # the variable se_hat (degree of saturation) goes to WOFOST
+    se_hat_Soybean = ((theta_hat_Soybean-theta_res_Soybean)/(theta_sat_Soybean-theta_res_Soybean)).reshape(size)   # getting the values
+    
+    
+    ### set the soil parameters ###
+    Soybean_wofost.set_value("soil_moisture",se_hat_Soybean) 
+    Soybean_wofost.set_value("saturation",sat)
+    Soybean_wofost.set_value("residual",res) 
+    Soybean_wofost.set_value("field_capacity",theta_fc)
+    Soybean_wofost.set_value("wilting_point",theta_wp)
+    
+    ### set the meteo variables ###
+    Soybean_wofost.set_value("precipitation",P) 
+    Soybean_wofost.set_value("temperature_max",TMax)
+    Soybean_wofost.set_value("temperature_min",TMin) 
+    Soybean_wofost.set_value("wind_speed",WS)
+    Soybean_wofost.set_value("shortwave_radiation",SR)
+    Soybean_wofost.set_value("vapour_pressure",VP)
+    
+    Soybean_wofost.update()
+    
+    ### WOFOST get variables ###
+    buffer = np.zeros(size)
+    RD_Soybean = np.reshape(Soybean_wofost.get_value("root_depth",buffer),(300,840)).astype("float32") # lat and lon
+    
+    #### Calculating degree of stauration for Wheat crop #####
+    
+    stor_upp_Wheat = pcr.get_value("upper_soil_storage_for_bmi").astype("float32")
+    stor_low_Wheat = pcr.get_value("lower_soil_storage_for_bmi").astype("float32")
+    
+    f1_Wheat = np.divide(np.minimum(RD_Wheat,dep1*100),RD_Wheat, out = np.zeros_like(dep1), where=RD_Wheat !=0)
+    f1_Wheat = np.where(RD_Wheat ==0, 1, f1_Wheat)
+    f2_Wheat = 1-f1_Wheat
+    
+    ## Volumetric MC variables (degree of saturation) ##
+    theta_hat_Wheat = f1_Wheat*(res_upp + (stor_upp_Wheat/dep1)) + f2_Wheat *(res_low + (stor_low_Wheat/dep2))
+    theta_sat_Wheat = (f1_Wheat*sat_upp) + (f2_Wheat*sat_low)
+    theta_res_Wheat = (f1_Wheat*res_upp) + (f2_Wheat*res_low)
+
+    # the variable se_hat (degree of saturation) goes to WOFOST
+    se_hat_Wheat = ((theta_hat_Wheat-theta_res_Wheat)/(theta_sat_Wheat-theta_res_Wheat)).reshape(size)   # getting the values
+   
+   
+    ### set the soil parameters ###
+    Wheat_wofost.set_value("soil_moisture",se_hat_Wheat) 
+    Wheat_wofost.set_value("saturation",sat)
+    Wheat_wofost.set_value("residual",res) 
+    Wheat_wofost.set_value("field_capacity",theta_fc)
+    Wheat_wofost.set_value("wilting_point",theta_wp)
+    
+    ### set the meteo variables ###
+    Wheat_wofost.set_value("precipitation",P) 
+    Wheat_wofost.set_value("temperature_max",TMax)
+    Wheat_wofost.set_value("temperature_min",TMin) 
+    Wheat_wofost.set_value("wind_speed",WS)
+    Wheat_wofost.set_value("shortwave_radiation",SR)
+    Wheat_wofost.set_value("vapour_pressure",VP)
+     
+    Wheat_wofost.update()
+    
+    ### WOFOST get variables ###
+    buffer = np.zeros(size)
+    RD_Wheat = np.reshape(Wheat_wofost.get_value("root_depth",buffer),(300,840)).astype("float32") # lat and lon
+        
+    pcr.update()
+    
+    
+# finalizing (closing) the models   
+
+Maize_wofost.finalize()
+Soybean_wofost.finalize()
+Wheat_wofost.finalize()
+pcr.finalize()
+
+
+
+
+
+
+
+
+
