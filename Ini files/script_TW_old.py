@@ -2,12 +2,12 @@ import numpy as np
 
 # Activating the hydrology and crop models 
 from model import bmiPcrglobwb
-config_pcr = "/quanta1/home/chevu001/PCR-WOFOST/TW/Pcrglobwb/setup_conus_5arcmin.ini"
+config_pcr = "setup_conus_5arcmin.ini"
 pcr = bmiPcrglobwb.BmiPCRGlobWB()
 pcr.initialize(config_pcr)
 
 from pymt_wofost import WOFOST
-config_wofost = "/list.txt"
+config_wofost = "list.txt"
 wofost = WOFOST()
 wofost.initialize(config_wofost)
 #### this runs for one crop ####
