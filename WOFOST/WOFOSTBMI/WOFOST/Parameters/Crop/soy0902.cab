@@ -21,6 +21,7 @@
 
 CRPNAM='Soybean 902, Central France'
 
+
 ** emergence
 TBASEM   =   7.0    ! lower threshold temp. for emergence [cel]
 TEFFMX   =  22.0    ! max. eff. temp. for emergence [cel]
