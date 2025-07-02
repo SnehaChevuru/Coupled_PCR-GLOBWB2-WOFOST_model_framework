@@ -1,0 +1,327 @@
+import numpy as np
+import importlib
+import concurrent.futures
+from model import bmiPcrglobwb
+import multiprocessing 
+from functools import partial
+import copy
+from multiprocessing.dummy import Pool 
+
+def compute_static_params_for_crop(crop_type, pcr, size):
+    land_cover = pcr.model.landSurface.landCoverObj[crop_type].parameters
+
+    # Extract base layers
+    dep1 = pcr.get_value(land_cover, "thickUpp").astype("float32")
+    dep2 = pcr.get_value(land_cover, "thickLow").astype("float32")
+
+    # Volumetric moisture content
+    sat_upp = pcr.get_value(land_cover, "satVolMoistContUpp").astype("float32")
+    sat_low = pcr.get_value(land_cover, "satVolMoistContLow").astype("float32")
+    res_upp = pcr.get_value(land_cover, "resVolMoistContUpp").astype("float32")
+    res_low = pcr.get_value(land_cover, "resVolMoistContLow").astype("float32")
+
+    # Air entry and pore size
+    airentry_upp = pcr.get_value(land_cover, "airEntryValueUpp").astype("float32")
+    airentry_low = pcr.get_value(land_cover, "airEntryValueLow").astype("float32")
+    Beta_upp = pcr.get_value(land_cover, "poreSizeBetaUpp").astype("float32")
+    Beta_low = pcr.get_value(land_cover, "poreSizeBetaLow").astype("float32")
+
+    # Saturated hydraulic conductivity
+    Ksat_upp = pcr.get_value(land_cover, "kSatUpp").astype("float32")
+    Ksat_low = pcr.get_value(land_cover, "kSatLow").astype("float32")
+
+    # Soil variables
+    fc_upp = pcr.get_value(land_cover, "effSatAtFieldCapUpp").astype("float32")
+    fc_low = pcr.get_value(land_cover, "effSatAtFieldCapLow").astype("float32")
+    wp_upp = pcr.get_value(land_cover, "effSatAtWiltPointUpp").astype("float32")
+    wp_low = pcr.get_value(land_cover, "effSatAtWiltPointLow").astype("float32")
+
+    # Weighted layer averages
+    dep_sum = dep1 + dep2
+    sat = ((sat_upp * dep1 + sat_low * dep2) / dep_sum).reshape(size)
+    res = ((res_upp * dep1 + res_low * dep2) / dep_sum).reshape(size)
+    fc = ((fc_upp * dep1 + fc_low * dep2) / dep_sum).reshape(size)
+    wp = ((wp_upp * dep1 + wp_low * dep2) / dep_sum).reshape(size)
+    theta_fc = (sat - res) * fc
+    theta_wp = (sat - res) * wp
+
+    Ksat = ((Ksat_upp * dep1 + Ksat_low * dep2) / dep_sum).reshape(size)
+    Beta = ((Beta_upp * dep1 + Beta_low * dep2) / dep_sum).reshape(size)
+    AirEntry = ((airentry_upp * dep1 + airentry_low * dep2) / dep_sum).reshape(size)
+
+    # Layer 1 only
+    betaupp = Beta_upp.reshape(size)
+    airentryupp = airentry_upp.reshape(size)
+    ksatupp = Ksat_upp.reshape(size)
+
+    # Derived parameters
+    Ksub = ksatupp * (((airentryupp / np.where(airentryupp < 0.1, 0.1, airentryupp + 0.1))**(1 / betaupp))**(2 * betaupp + 3))
+    slope = Ksat * (((AirEntry / np.where(AirEntry < 0.1, 0.1, AirEntry + 0.1))**(1 / Beta))**(2 * Beta + 3))
+    criarc = (sat - res) - ((sat - res) * ((AirEntry / (AirEntry + 0.01))**(1 / Beta)))
+
+    # Convert units if needed
+    Ksat *= 100
+    Ksub *= 100
+    slope *= 100
+
+    return {
+        "dep1": dep1,
+        "dep2": dep2,
+        "sat": sat - res,
+        "res": res,
+        "theta_fc": theta_fc,
+        "theta_wp": theta_wp,
+        "Ksat": Ksat,
+        "Ksub": Ksub,
+        "slope": slope,
+        "criarc": criarc,
+        "res_upp": res_upp,
+        "res_low": res_low,
+        "sat_upp": sat_upp,
+        "sat_low": sat_low,
+        # "stor_upp": None,
+        # "stor_low": None,
+        "RD": np.full((372, 420), 0).astype("float32"),
+        # "wofost_models": wofost_models[crop_type],  
+        "size": size
+    }  
+
+def update_all_crops(i, crop_types, static_params, pcr, wofost_models,storage):
+    # PCR pre-update
+    pcr.pre_update()
+
+    # Get PCR meteo variables once
+    common_data = tuple(
+        pcr.get_value(pcr.model.meteo, var).astype("float32")
+        for var in ["precipitation", "air_temperature_max", "air_temperature_min",
+                    "wind_speed_10m", "shortwave_radiation", "vapour_pressure"]
+    )
+
+    for crop_type in crop_types:
+        land_obj = pcr.model.landSurface.landCoverObj[crop_type]
+        storage["stor_upp"][crop_type] = pcr.get_value(land_obj, "storUpp").astype("float32")
+        storage["stor_low"][crop_type] = pcr.get_value(land_obj, "storLow").astype("float32")
+
+
+    # Parallel call
+    # with mp.Pool(processes=mp.cpu_count()) as pool:
+    #     results = pool.starmap(partial(run_crop_model, i=i, common_data=common_data, static_params=static_params),
+    #                            [(crop_type,) for crop_type in crop_types])
+
+    with Pool(processes=10) as pool:
+        results = pool.starmap(run_crop_model, [(crop, i, common_data, static_params, wofost_models, storage) for crop in crop_types])
+
+    print(multiprocessing.cpu_count)
+    # Update PCR with fluxes per crop
+    for crop_type, RD_crop, RD1, AE, PE, AT, WE, ET in results:
+        pcr.set_value(pcr.model.landSurface.landCoverObj[crop_type], "root_depth", RD1)
+        pcr.set_value(pcr.model.landSurface.landCoverObj[crop_type], "actBareSoilEvap", AE)
+        pcr.set_value(pcr.model.landSurface.landCoverObj[crop_type], "potBareSoilEvap", PE)
+        pcr.set_value(pcr.model.landSurface.landCoverObj[crop_type], "actTranspiration", AT)
+        pcr.set_value(pcr.model.landSurface.landCoverObj[crop_type], "openWaterEvap", WE)
+        pcr.set_value(pcr.model.landSurface.landCoverObj[crop_type], "totalPotET", ET)
+
+        # Update RD to static for next time step
+        static_params["RD"][crop_type] = RD_crop
+
+    # PCR update step
+    pcr.update()
+    print('done')
+
+def run_crop_model(crop_type, i, common_data, static_params, wofost_models, storage):
+    """
+    Executes model step for a single crop type and timestep.
+    """
+    # Deep copy the model to avoid shared memory access issues
+    # wofost_model = copy.deepcopy(static_params["wofost_models"][crop_type])
+    wofost_model = wofost_models[crop_type]
+    print(wofost_model)
+    # Unpack common variables
+    P, TMax, TMin, WS, SR, VP = common_data
+    dep1 = static_params["dep1"][crop_type]
+    dep2 = static_params["dep2"][crop_type]
+    res_upp = static_params["res_upp"][crop_type]
+    res_low = static_params["res_low"][crop_type]
+    sat_upp = static_params["sat_upp"][crop_type]
+    sat_low = static_params["sat_low"][crop_type]
+    stor_upp = storage["stor_upp"][crop_type]
+    stor_low = storage["stor_low"][crop_type]
+    RD = static_params["RD"][crop_type]
+    
+    f1 = np.divide(np.minimum(RD, dep1 * 100), RD, out=np.zeros_like(dep1), where=RD != 0)
+    f1 = np.where(RD == 0, 1, f1)
+    f2 = 1 - f1
+
+    theta_hat = (f1 * (res_upp + (stor_upp / dep1))) + (f2 * (res_upp + (stor_low / dep2)))
+    theta_sat = (f1 * sat_upp) + (f2 * sat_low)
+    theta_res = (f1 * res_upp) + (f2 * res_low)
+    se_hat = ((theta_hat - theta_res) / (theta_sat - theta_res)).reshape(static_params["size"])
+
+    # Set values to model
+    for var, value in {
+        "soil_moisture": se_hat,
+        "saturation": static_params["sat"][crop_type],
+        "residual": static_params["res"][crop_type],
+        "field_capacity": static_params["theta_fc"][crop_type],
+        "wilting_point": static_params["theta_wp"][crop_type],
+        "hydraulic_conductivity": static_params["Ksat"][crop_type],
+        "soil_aeration": static_params["criarc"][crop_type],
+        "slope": static_params["slope"][crop_type],
+        "ksub": static_params["Ksub"][crop_type],
+        "precipitation": P,
+        "temperature_max": TMax,
+        "temperature_min": TMin,
+        "wind_speed": WS,
+        "shortwave_radiation": SR,
+        "vapour_pressure": VP,
+         }.items():
+        wofost_model.set_value(var, value)
+
+    # Update the model
+    wofost_model.update()
+
+    # Retrieve fluxes and RD
+    size = static_params["size"]
+    buffer = np.zeros(size)
+    RD_crop = np.reshape(wofost_model.get_value("root_depth", buffer), (372, 420)).astype("float32")
+    RD1 = RD_crop * 0.01
+    RD1[RD1 == 0] = 1e20
+
+    AE = np.reshape(wofost_model.get_value("ActBSevaporation", buffer), (372, 420)).astype("float32")
+    PE = np.reshape(wofost_model.get_value("PotBSevaporation", buffer), (372, 420)).astype("float32")
+    AT = np.reshape(wofost_model.get_value("Acttranspiration", buffer), (372, 420)).astype("float32")
+    WE = np.reshape(wofost_model.get_value("OpenWevaporation", buffer), (372, 420)).astype("float32")
+    ET = np.reshape(wofost_model.get_value("PotET", buffer), (372, 420)).astype("float32")
+
+    # Clean values
+    for var in [AE, PE, AT, WE, ET]:
+        var[var == 1e18] = 1e20
+
+    # Return all needed data
+    return crop_type, RD_crop, RD1, AE, PE, AT, WE, ET
+
+#### Function to initialize WOFOST models ####
+# def initialize_wofost(crop_type):
+#     if "Maize" in crop_type :
+#         module_name = f"pymt_MI"
+#         class_name = f"WOFOST_MI"
+#     elif "Soybean" in crop_type:
+#         module_name = f"pymt_WR"
+#         class_name = f"WOFOST_WR"
+#     else:
+#         module_name = f"pymt_WI"
+#         class_name = f"WOFOST_WI"
+
+#     module = importlib.import_module(module_name)
+#     WofostClass = getattr(module, class_name)
+#     model_instance = WofostClass()
+#     model_instance.initialize(crop_configs[crop_type])
+
+#     print(f"[INIT] Crop: {crop_type}, Memory ID: {id(model_instance)}")
+#     return crop_type, model_instance    
+
+crop_model_map = {
+    "irrMaize":   ("pymt_MI", "WOFOST_MI"),
+    "irrSoybean": ("pymt_SI", "WOFOST_SI"),
+    "irrWheat":   ("pymt_WI", "WOFOST_WI"),
+    "irrSpringWheat":    ("pymt_SWI", "WOFOST_SWI"),
+    "irrPaddy":  ("pymt_RI", "WOFOST_RI"),
+    "rainfedMaize": ("pymt_MR", "WOFOST_MR"),
+    "rainfedSoybean":  ("pymt_SR", "WOFOST_SR"),
+    "rainfedWheat":  ("pymt_WR", "WOFOST_WR"),
+    "rainfedSpringWheat":  ("pymt_SWR", "WOFOST_SWR"),
+    "rainfedPaddy":  ("pymt_RR", "WOFOST_RR"),
+}
+
+def initialize_wofost(crop_type):
+    module_name, class_name = crop_model_map[crop_type]
+    module = importlib.import_module(module_name)
+    WofostClass = getattr(module, class_name)
+    model_instance = WofostClass()
+    model_instance.initialize(crop_configs[crop_type])
+    return crop_type, model_instance
+
+
+
+if __name__ == "__main__":
+
+    crop_configs = {
+        "irrMaize": "list_irr_maize.txt",
+        "irrSoybean": "list_irr_soybean.txt",
+        "irrWheat": "list_irr_winterwheat.txt",
+        "irrSpringWheat": "list_irr_springwheat.txt",
+        "irrPaddy": "list_irr_rice.txt",
+        "rainfedMaize": "list_irr_maize.txt",
+        "rainfedSoybean": "list_rf_soybean.txt",
+        "rainfedWheat": "list_rf_winterwheat.txt",
+        "rainfedSpringWheat": "list_rf_springwheat.txt",
+        "rainfedPaddy": "list_rf_rice.txt",
+    }
+
+    #### Initialize all WOFOST models in parallel ####
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_to_crop = {executor.submit(initialize_wofost, crop): crop for crop in crop_configs}
+        wofost_models = dict(f.result() for f in concurrent.futures.as_completed(future_to_crop))
+    # print(wofost_models)
+    # print(wofost_models['irrMaize'])
+    #### Retrieve simulation end time from any model ####
+    end_time = int(wofost_models["irrMaize"].get_end_time())
+    grid_size = wofost_models["irrMaize"].get_grid_size(0)
+    print(f"Grid size: {grid_size}")
+
+    #### Initialize PCR-GLOBWB model ####
+    pcr_config_path = "script.ini"
+    pcr = bmiPcrglobwb.BmiPCRGlobWB()
+    pcr.initialize(pcr_config_path)
+
+    crop_types = list(crop_configs.keys())
+
+    static_params = {
+            "dep1": {},
+            "dep2": {},
+            "sat": {},
+            "res": {},
+            "theta_fc": {},
+            "theta_wp": {},
+            "Ksat": {},
+            "Ksub": {},
+            "slope": {},
+            "criarc": {},
+            "res_upp": {},
+            "res_low": {},
+            "sat_upp": {},
+            "sat_low": {},
+            # "stor_upp": {},
+            # "stor_low": {},
+            "RD": {},
+            "size": grid_size
+        }
+
+    for crop_type in crop_types:
+        crop_data = compute_static_params_for_crop(crop_type, pcr, grid_size)
+        for key, value in crop_data.items():
+            # print(key)
+            if key in static_params and isinstance(static_params[key], dict):
+                static_params[key][crop_type] = value
+            else:
+                # Safe skip
+                continue    
+
+    for i in range(end_time):
+        print(f"--- Time Step {i+1}/730 ---")
+        
+        storage ={
+            "stor_upp": {},
+            "stor_low": {}
+        }
+
+        update_all_crops(i, crop_types, static_params, pcr, wofost_models, storage)
+        # print('ended')
+
+    for model in wofost_models.values():
+        model.finalize()
+    pcr.finalize()
+
+
+
+
