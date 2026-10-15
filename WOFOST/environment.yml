@@ -3,7 +3,8 @@ name : BMIwrap
 channels:
         - conda-forge
 dependencies:
-        - python>=3
+        - python=3.10
+        - setuptools==80.9.0
         - make
         - cmake
         - pkg-config
